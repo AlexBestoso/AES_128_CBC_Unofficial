@@ -59,7 +59,6 @@ void aes_128_cbc_decipher(char *state, size_t size, char IV[17], char key[17]){
         }
 
         for(int i=0; i<blockCount; i++){
-		printf("\n");
                 for(int j=0; j<17; j++)
                         tmp_key[j] = key[j];
 		for(int j=0; j<16; j++){
