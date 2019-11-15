@@ -4,17 +4,7 @@ This new update simplifies the main.c file. The AES_128_CBC functions have now b
 
 Results can now be returned from the encyption functions via struct.
 
-Sample usage of the main.c test program:
-[code]censored@censored ~/Documents/crypto/AES_128_CBC $ ./make.sh[/code]
 
-censored@censored ~/Documents/crypto/AES_128_CBC $ ./aes_128_cbc "$(cat README.md)" -e > test && cat test
-f@���*��ʣY���ȣ�_Ԗ�ő�����k�II�sn���cnB÷Ѥ�}�.�C
-                                                    ��v��6�*ǐ��_Pw�m������`�l;۬Ä#u<Ú:?x=�?z�o�I��ډ���lM����_}׌e!r�~����`[K�q�pBk����@�xsR�
-
-censored@censored ~/Documents/crypto/AES_128_CBC $ ./aes_128_cbc "$(cat test)" -d
-AES_128_CBC_Unofficial
-An unofficial implentation of the CBC mode of operation. Built because I think crypto is cool. use it, but not for production.
-/**********************************/
 Known Issues : 
 Decryption fails when processing large files. For example the LICENSE file that comes with this software. 
 I beleive the error occurs when calculating the size of the state. Using strlen() will cause errors when the ciphertext contains "\x00". The error seems to be non-existant in the actual encryption/decryption code. 
