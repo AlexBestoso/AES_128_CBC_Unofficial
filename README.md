@@ -12,7 +12,7 @@ censored@censored ~/Documents/crypto/AES_128_CBC $ ./aes_128_cbc "$(cat README.m
                                                     ��v��6�*ǐ��_Pw�m������`�l;۬Ä#u<Ú:?x=�?z�o�I��ډ���lM����_}׌e!r�~����`[K�q�pBk����@�xsR�
 
 censored@censored ~/Documents/crypto/AES_128_CBC $ ./aes_128_cbc "$(cat test)" -d
-# AES_128_CBC_Unofficial
+AES_128_CBC_Unofficial
 An unofficial implentation of the CBC mode of operation. Built because I think crypto is cool. use it, but not for production.
 
 Known Issues : 
