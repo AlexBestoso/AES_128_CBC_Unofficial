@@ -1,14 +1,15 @@
 #include "aes_128/aes.h"
 #include <stdio.h>
+#include <string.h>
 
 void aes_128_cbc_encipher(char *state, size_t size, char IV[17], char key[17]){
 	char tmp_key[17];
 	unsigned int blockCount = size/16;
 	
-	char msg_container[blockCount][17];
+	char state_container[blockCount][17];
 	for(int i=0; i<blockCount; i++){
 		for(int j=0; j<17; j++)
-		msg_container[i][j] = '\0';
+		state_container[i][j] = '\0';
 	}
 	
 	signed int inc = -1;
@@ -16,7 +17,7 @@ void aes_128_cbc_encipher(char *state, size_t size, char IV[17], char key[17]){
 		if((i%16) == 0){
 			inc++;
 		}
-		msg_container[inc][i%16] = state[i];
+		state_container[inc][i%16] = state[i];
 	}
 
 	for(int i=0; i<blockCount; i++){
@@ -24,17 +25,17 @@ void aes_128_cbc_encipher(char *state, size_t size, char IV[17], char key[17]){
 			tmp_key[j] = key[j];
 	
 		for(int j=0; j<16; j++)
-			msg_container[i][j] = msg_container[i][j] ^ IV[j];
+			state_container[i][j] = state_container[i][j] ^ IV[j];
 		
-		aes_128_encipher(msg_container[i], tmp_key);
+		aes_128_encipher(state_container[i], tmp_key);
 
 		for(int j=0; j<16; j++)
-			IV[j] = msg_container[i][j];
+			IV[j] = state_container[i][j];
 	}	
 	
 	for(int i=0; i<blockCount; i++){
 		for(int j=0; j<16; j++){
-			state[(i*16)+j] = msg_container[i][j];
+			state[(i*16)+j] = state_container[i][j];
 		}
 	}
 }
@@ -81,69 +82,106 @@ void aes_128_cbc_decipher(char *state, size_t size, char IV[17], char key[17]){
         }
 }
 
+#define STATE_MAX 900000
+struct AES_128_Struct{
+        char state[STATE_MAX];
+        size_t state_size;
+        char key[17];
+        char IV[17];
+	int error;
+};
+
+#define AES_ENCRYPT 0
+#define AES_DECRYPT 1
+
+struct AES_128_Struct AES_128_CBC(int mode, char *data, struct AES_128_Struct aes_128_struct){
+	size_t messageSize=0, stateSize=0;
+	messageSize = strlen(data);
+        /*
+         * If size is greater than 16, then our state
+         * needs extra blocks.
+         */
+        if(messageSize >= 16){
+                /*
+                 * get amount of 128 bit chunks.
+                 * multiply that amount by 16(128 bits)
+                 */
+                stateSize = (messageSize/16)*16;
+                // if stringSize is greater than stateSize, we're one block short.
+                if(messageSize > stateSize){
+                        stateSize += 16;
+                }
+        /*
+         * Else the size is 16 bytes
+         */
+        }else{
+                stateSize = 16;
+        }
+	/*
+         * Fill state with your secret message
+         */
+        char state[stateSize];
+        for(int i=0; i<messageSize; i++){
+                state[i] = data[i];
+        }
+        /*
+         * Fill the rest of the block with null bytes.
+         */
+        for(int i=messageSize; i<stateSize; i++){
+                state[i] = 0x00;
+        }
+
+	aes_128_struct.error = 0;
+	if(stateSize >= STATE_MAX){
+		aes_128_struct.error = 1;
+		return aes_128_struct;
+	}
+	memset(aes_128_struct.state, '\0', STATE_MAX);
+	strncpy(aes_128_struct.state, state, stateSize);	
+        aes_128_struct.state_size = stateSize;
+
+        /*
+         * Enicipher function
+         */
+        if(mode == 0){
+                aes_128_cbc_encipher(aes_128_struct.state, aes_128_struct.state_size, aes_128_struct.IV, aes_128_struct.key);
+		return aes_128_struct;
+        }	
+        /*
+         * Decipher function
+         */
+        if(mode == 1){
+                aes_128_cbc_decipher(aes_128_struct.state, aes_128_struct.state_size, aes_128_struct.IV, aes_128_struct.key);
+		return aes_128_struct;
+        }
+}
+
 int main(int argc, char *argv[]){
-	if(argc != 2){
-		printf("[-] Err, program takes only one argument\n");
-		printf("[%s \"message\"]\n", argv[0]);
+	if(argc != 3){
+		printf("[-] Err, program takes only two argument\n");
+		printf("[%s \"message\"] [-e/-d]\n", argv[0]);
 		return 1;
 	}
+
+	int mode = 0;
+	if(!strcmp(argv[2], "-e")){
+		mode = AES_ENCRYPT;
+	}else if(!strcmp(argv[2], "-d")){
+		mode = AES_DECRYPT;
+	}	
 	
-	char IV[17] = "0123456789abcdef\0";
-	char IV_2[17] = "0123456789abcdef\0";
+	struct AES_128_Struct aes;
+	strncpy(aes.IV, "0123456789abcdef\0", 17);
+        strncpy(aes.key, "b87389r2@@%V4732\0", 17);
 
-	char key[17] = "b87389r2@@%V4732\0";
-	size_t size=0, size_II=0;
-	char *state;
-
-	while(argv[1][size] != '\0'){
-		size++;
-	}
-	state = malloc(size);
-	for(int i=0; i<size; i++){
-		*(state + i) = argv[1][i];
+	aes = AES_128_CBC(mode, argv[1], aes);
+	if(aes.error){
+		printf("Encryption Failed\n");
+		exit(EXIT_FAILURE);
 	}
 
-	if(size >= 16){
-		size_II = (size/16)*16;
-		if(size > size_II){
-			size_II += 16;
-		}
-	}else{
-		size_II = (16-size)+size;
-	}
-
-	state = realloc(state, size_II);
-	if(state == NULL){
-		printf("Reallocation failed\n");
-		return 1;
-	}
-	for(int i=size; i<size_II; i++){
-		*(state+i) = '\0';
-	}
-	
-	printf("Your message:\n");
-	for(int i=0; i<size_II; i++){
-		printf("%c", state[i]);
-	}
-
-	aes_128_cbc_encipher(state, size_II, IV, key);
-
-	printf("\n\nENCIPHERED: \n");
-	for(int i=0; i<size_II; i++){
-                printf("%c", state[i]);
-        }
-
-	aes_128_cbc_decipher(state, size_II, IV_2, key);
-
-	printf("DECIPHERED: \n");
-        for(int i=0; i<size_II; i++){
-                printf("%c", state[i]);
-        }
-
-	printf("\n");
-
-	if(state != NULL){
-		free(state);
-	}
-	return 0;
+	for(int i=0; i<aes.state_size; i++){
+		printf("%c", aes.state[i]);
+       	}
+	exit(EXIT_SUCCESS);
 }
